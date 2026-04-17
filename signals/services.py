@@ -88,7 +88,7 @@ def calculate_macd(prices: list[float]) -> list[float] | None:
 
     macd_line = np.array(ema_12) - np.array(ema_26)
 
-    return macd_line
+    return macd_line.tolist()
 
 
 def detect_macd_crossover(macd: list[float]) -> str | None:
@@ -131,7 +131,7 @@ def calculate_indicators(prices: list[float]) -> dict:
     """
     return {
         "rsi": calculate_rsi(prices),
-        "macd": macd_line[-1] if macd_line else None,
+        "macd": macd_line[-1] if macd_line is not None else None,
         "macd_line": macd_line,
         "sma_200": calculate_sma(prices, 200),
     }
@@ -163,7 +163,7 @@ def analyze_signal(indicators: dict, price: float) -> str:
     macd_line = indicators.get("macd_line")
 
     #  защита от None
-    if None in (rsi, macd, sma_200, macd_line):
+    if rsi is None or macd is None or sma_200 is None or macd_line is None:
         return "HOLD"
 
     crossover = detect_macd_crossover(macd_line)
