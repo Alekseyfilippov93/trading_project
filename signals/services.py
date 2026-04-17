@@ -70,7 +70,7 @@ def calculate_ema(prices: list[float], period: int) -> list[float]:
     return ema
 
 
-def calculate_macd(prices: list[float]) -> float | None:
+def calculate_macd(prices: list[float]) -> list[float] | None:
     """
     MACD (индикатор сходимости и расхождения скользящих средних).
 
@@ -83,15 +83,43 @@ def calculate_macd(prices: list[float]) -> float | None:
     if len(prices) < 26:
         return None
 
-    ema_12 = calculate_ema(prices, 12)
+    ema_12 = calculate_ema(prices, 12)  # периоды можно менять, настраивать под себя.
     ema_26 = calculate_ema(prices, 26)
 
     macd_line = np.array(ema_12) - np.array(ema_26)
 
-    return float(macd_line[-1])
+    return macd_line
+
+
+def detect_macd_crossover(macd: list[float]) -> str | None:
+    """
+    Определяет пересечение MACD с нулевой линией.
+
+    Args:
+        macd (list[float]): MACD линия
+
+    Returns:
+        str | None: 'BUY', 'SELL' или None
+    """
+    if len(macd) < 2:
+        return None
+
+    prev = macd[-2]
+    current = macd[-1]
+
+    # ↑ пересечение вверх
+    if prev < 0 and current > 0:
+        return "BUY"
+
+    # ↓ пересечение вниз
+    if prev > 0 and current < 0:
+        return "SELL"
+
+    return None
 
 
 def calculate_indicators(prices: list[float]) -> dict:
+    macd_line = calculate_macd(prices)
     """
     Рассчитывает все технические индикаторы
 
@@ -103,9 +131,11 @@ def calculate_indicators(prices: list[float]) -> dict:
     """
     return {
         "rsi": calculate_rsi(prices),
-        "macd": calculate_macd(prices),
+        "macd": macd_line[-1] if macd_line else None,
+        "macd_line": macd_line,
         "sma_200": calculate_sma(prices, 200),
     }
+
 
 def analyze_signal(indicators: dict, price: float) -> str:
     """
@@ -130,22 +160,28 @@ def analyze_signal(indicators: dict, price: float) -> str:
     rsi = indicators.get("rsi")
     macd = indicators.get("macd")
     sma_200 = indicators.get("sma_200")
+    macd_line = indicators.get("macd_line")
 
     #  защита от None
-    if rsi is None or macd is None or sma_200 is None:
+    if None in (rsi, macd, sma_200, macd_line):
         return "HOLD"
 
-    if None in (rsi, macd, sma_200):
-        return "HOLD"
+    crossover = detect_macd_crossover(macd_line)
 
     #  определяем тренд
     trend = "UP" if price > sma_200 else "DOWN"
 
     #  логика стратегии
-    if trend == "UP" and rsi < 30 and macd > 0:
+    if trend == "UP" and rsi < 30 and crossover == "BUY":
+        return "STRONG_BUY"
+
+    if trend == "DOWN" and rsi > 70 and crossover == "SELL":
+        return "STRONG_SELL"
+
+    if crossover == "BUY":
         return "BUY"
 
-    if trend == "DOWN" and rsi > 70 and macd < 0:
+    if crossover == "SELL":
         return "SELL"
 
     return "HOLD"
