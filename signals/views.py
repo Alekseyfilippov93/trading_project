@@ -5,6 +5,7 @@ from rest_framework import status
 from .models import Signal
 from .serializers import SignalSerializer
 from .services import calculate_indicators, analyze_signal
+from .market import get_bybit_prices
 
 
 @api_view(["POST"])
@@ -34,8 +35,8 @@ def tradingview_webhook(request):
     symbol = data.get("symbol")
     price = float(data.get("price"))
 
-    # 🔥 пока делаем fake данные (скоро заменим на реальные)
-    prices = list(range(1, 300))
+    # данные с байбит биржи
+    prices = get_bybit_prices(symbol)
 
     indicators = calculate_indicators(prices)
     analysis = analyze_signal(indicators, price)

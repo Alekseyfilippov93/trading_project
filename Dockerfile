@@ -20,6 +20,7 @@ COPY . /app
 RUN pip install numpy pandas
 RUN pip install --upgrade pip
 RUN pip install django djangorestframework psycopg2-binary python-dotenv
+RUN pip install requests
 
 
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
