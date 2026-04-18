@@ -6,6 +6,8 @@ from .models import Signal
 from .serializers import SignalSerializer
 from .services import calculate_indicators, analyze_signal
 from .market import get_bybit_prices
+from .logger import log_signal
+from django.shortcuts import render
 
 
 @api_view(["POST"])
@@ -33,13 +35,18 @@ def tradingview_webhook(request):
     data = request.data
 
     symbol = data.get("symbol")
-    price = float(data.get("price"))
 
     # данные с байбит биржи
     prices = get_bybit_prices(symbol)
 
+    if not prices:
+        return Response({"error": "No market data"}, status=400)
+
+    price = prices[-1]  # РЕАЛЬНАЯ текущая цена в данный момент
+
     indicators = calculate_indicators(prices)
     analysis = analyze_signal(indicators, price)
+    log_signal(symbol, price, analysis)
 
     signal = Signal.objects.create(
         symbol=symbol,
@@ -55,11 +62,34 @@ def tradingview_webhook(request):
     return Response(
         {
             "id": signal.id,
-            "symbol": signal.symbol,
-            "rsi": signal.rsi,
-            "macd": signal.macd,
-            "sma_200": signal.sma_200,
-            "analysis": signal.analysis,
+            "symbol": symbol,
+            "price": price,
+            "rsi": indicators["rsi"],
+            "macd": indicators["macd"],
+            "sma_200": indicators["sma_200"],
+            "analysis": analysis,
         },
         status=status.HTTP_201_CREATED,
     )
+
+
+def dashboard(request):
+    """Отображает список последних сигналов."""
+    signals = Signal.objects.order_by("-created_at")[:50]
+
+    return render(request, "signals/dashboard.html", {"signals": signals})
+
+@api_view(["GET"])
+def signals_list(request):
+    """
+    Возвращает последние сигналы для AJAX dashboard
+    """
+    symbol = request.GET.get("symbol")
+
+    signals = Signal.objects.order_by("-created_at")
+
+    if symbol:
+        signals = signals.filter(symbol=symbol)
+
+    serializer = SignalSerializer(signals[:50], many=True)
+    return Response(serializer.data)

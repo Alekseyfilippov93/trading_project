@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Trading Dashboard</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            background: #0f1115;
+            color: white;
+        }
+
+        .container {
+            margin-top: 30px;
+        }
+
+        table {
+            background: #161a22;
+        }
+
+        th {
+            color: #aaa;
+        }
+
+        .card {
+            background: #161a22;
+            border: none;
+            padding: 15px;
+        }
+
+        select {
+            background: #1e222d;
+            color: white;
+            border: 1px solid #333;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h2 class="text-center mb-4">📊 Trading Signals Dashboard (LIVE)</h2>
+
+    <!-- ФИЛЬТР -->
+    <div class="card mb-3">
+        <div class="row">
+            <div class="col-md-4">
+                <select id="symbolFilter" class="form-select">
+                    <option value="">Все тикеры</option>
+                    <option value="BTCUSDT">BTCUSDT</option>
+                    <option value="SBER">SBER</option>
+                    <option value="GAZP">GAZP</option>
+                </select>
+            </div>
+
+            <div class="col-md-4">
+                <button class="btn btn-success" onclick="loadSignals()">Обновить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ТАБЛИЦА -->
+    <table class="table table-dark table-striped table-hover">
+
+        <thead>
+        <tr>
+            <th>Symbol</th>
+            <th>Price</th>
+            <th>RSI</th>
+            <th>MACD</th>
+            <th>Signal</th>
+            <th>Time</th>
+        </tr>
+        </thead>
+
+        <tbody id="signals-body">
+        <!-- JS -->
+        </tbody>
+
+    </table>
+
+</div>
+
+<script>
+
+async function loadSignals() {
+
+    const symbol = document.getElementById("symbolFilter").value;
+
+    let url = "http://127.0.0.1:8000/signals/";
+    if (symbol) {
+        url += "?symbol=" + symbol;
+    }
+
+    const res = await fetch("http://127.0.0.1:8000/signals/");
+    const data = await res.json();
+
+    console.log("DATA:", data);
+
+    const tbody = document.getElementById("signals-body");
+    tbody.innerHTML = "";
+
+    data.forEach(s => {
+
+        let badge = "warning";
+
+        if (s.analysis === "BUY" || s.analysis === "STRONG_BUY") {
+            badge = "success";
+        }
+
+        if (s.analysis === "SELL" || s.analysis === "STRONG_SELL") {
+            badge = "danger";
+        }
+
+        tbody.innerHTML += `
+            <tr>
+                <td>${s.symbol}</td>
+                <td>${s.price}</td>
+                <td>${s.rsi ?? "-"}</td>
+                <td>${s.macd ?? "-"}</td>
+                <td><span class="badge bg-${badge}">${s.analysis}</span></td>
+                <td>${s.created_at}</td>
+            </tr>
+        `;
+    });
+}
+
+// автообновление каждые 3 сек
+setInterval(loadSignals, 3000);
+
+// первый запуск
+loadSignals();
+
+</script>
+
+</body>
+</html>
