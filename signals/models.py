@@ -5,7 +5,7 @@ class Signal(models.Model):
     """
     Модель для хранения торговых сигналов и рассчитанных индикаторов.
     """
-
+    cmf = models.FloatField(null=True, blank=True)
     BUY = "buy"
     SELL = "sell"
 
