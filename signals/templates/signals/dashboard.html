@@ -157,6 +157,26 @@ async function loadSignals() {
     const tbody = document.getElementById("signals-body");
     tbody.innerHTML = "";
 
+    // 🔥 добавляем LIVE строку в таблицу
+const liveRes = await fetch(`http://127.0.0.1:8000/analyze/?symbol=${symbol}`);
+const liveData = await liveRes.json();
+
+tbody.innerHTML += `
+    <tr style="background:#1f2a38; border-left: 4px solid #00ffcc;">
+        <td>${liveData.symbol} (LIVE)</td>
+        <td><b>${liveData.price}</b></td>
+        <td>${liveData.rsi ?? "-"}</td>
+        <td>${liveData.macd ?? "-"}</td>
+        <td>${liveData.cmf ?? "-"}</td>
+        <td>
+            <span class="badge ${getSignalClass(liveData.analysis)}">
+                ${liveData.analysis ?? "HOLD"}
+            </span>
+        </td>
+        <td>now</td>
+    </tr>
+`;
+
     data.forEach(s => {
 
         tbody.innerHTML += `

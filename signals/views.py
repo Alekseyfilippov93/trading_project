@@ -45,12 +45,10 @@ def tradingview_webhook(request):
         timeframe=data.get("timeframe"),
         signal_type=data.get("signal_type"),
         price=price,
-
         rsi=indicators["rsi"],
         macd=indicators["macd"],
         sma_200=indicators["sma_200"],
-        cmf=indicators["cmf"],   # 🔥 ДОБАВИЛИ CMF
-
+        cmf=indicators["cmf"],
         analysis=analysis,
     )
 
@@ -64,7 +62,7 @@ def tradingview_webhook(request):
             "rsi": indicators["rsi"],
             "macd": indicators["macd"],
             "sma_200": indicators["sma_200"],
-            "cmf": indicators["cmf"],   # 🔥
+            "cmf": indicators["cmf"],  # 🔥
 
             "analysis": analysis,
         },
@@ -90,7 +88,7 @@ def signals_list(request):
 
     symbol = request.GET.get("symbol")
 
-    signals = Signal.objects.order_by("-created_at")
+    signals = Signal.objects.filter(cmf__isnull=False).order_by("-created_at")
 
     if symbol:
         signals = signals.filter(symbol__icontains=symbol)
@@ -132,4 +130,3 @@ def analyze_market(request):
 
         "analysis": analysis,
     })
-

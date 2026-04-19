@@ -123,39 +123,60 @@ def detect_macd_crossover(macd: list[float]) -> str | None:
 # =========================
 # CMF
 # =========================
-def calculate_cmf(highs, lows, closes, volumes, period: int = 20) -> float | None:
+def calculate_cmf(
+    highs: list[float],
+    lows: list[float],
+    closes: list[float],
+    volumes: list[float],
+    period: int = 20
+) -> float:
     """
-    Chaikin Money Flow (CMF).
+    Chaikin Money Flow (устойчивый вариант)
 
-    Показывает поток денег (покупатели/продавцы).
+    > 0 → BUY давление
+    < 0 → SELL давление
 
-    > 0 = покупатели доминируют
-    < 0 = продавцы доминируют
-
-    Returns:
-        CMF значение или None
+    Всегда возвращает число (не None)
     """
-    if len(closes) < period:
-        return None
 
-    mfv_sum = 0
+    # 🔥 защита от мусора
+    if not highs or not lows or not closes or not volumes:
+        return 0.0
+
+    length = min(len(highs), len(lows), len(closes), len(volumes))
+
+    if length < period:
+        period = length  # 🔥 адаптация под малые данные
+
+    mfv = []
     vol_sum = 0
 
-    for i in range(-period, 0):
+    for i in range(length - period, length):
 
-        if highs[i] - lows[i] == 0:
+        high = highs[i]
+        low = lows[i]
+        close = closes[i]
+        volume = volumes[i]
+
+        # защита от деления на 0
+        if high == low:
             continue
 
-        mfm = ((closes[i] - lows[i]) - (highs[i] - closes[i])) / (highs[i] - lows[i])
-        mfv = mfm * volumes[i]
+        # защита от нулевых объёмов
+        if volume <= 0:
+            continue
 
-        mfv_sum += mfv
-        vol_sum += volumes[i]
+        mfm = ((close - low) - (high - close)) / (high - low)
+        mfv.append(mfm * volume)
+        vol_sum += volume
 
-    if vol_sum == 0:
-        return None
+    # 🔥 если всё отфильтровалось
+    if vol_sum == 0 or not mfv:
+        return 0.0
 
-    return float(mfv_sum / vol_sum)
+    cmf = sum(mfv) / vol_sum
+
+    return float(cmf)
 
 
 # =========================
@@ -208,47 +229,27 @@ def analyze_signal(indicators: dict, price: float) -> str:
     rsi = indicators.get("rsi")
     macd_line = indicators.get("macd_line")
     sma_200 = indicators.get("sma_200")
-    cmf = indicators.get("cmf")
+    cmf = indicators.get("cmf", 0)
 
-    if None in (rsi, macd_line, sma_200):
+    # 🔥 ЗАЩИТА
+    if rsi is None or macd_line is None or sma_200 is None:
         return "HOLD"
 
     crossover = detect_macd_crossover(macd_line)
     trend = "UP" if price > sma_200 else "DOWN"
 
-    score = 0
-
-    if trend == "UP":
-        score += 1
-    else:
-        score -= 1
-
-    if rsi < 35:
-        score += 1
-    elif rsi > 65:
-        score -= 1
-
-    if crossover == "BUY":
-        score += 1
-    elif crossover == "SELL":
-        score -= 1
-
-    if cmf is not None:
-        if cmf > 0:
-            score += 1
-        else:
-            score -= 1
-
-    if score >= 3:
+    # сильные сигналы
+    if trend == "UP" and rsi < 35 and crossover == "BUY" and cmf > 0:
         return "STRONG_BUY"
 
-    if score <= -3:
+    if trend == "DOWN" and rsi > 65 and crossover == "SELL" and cmf < 0:
         return "STRONG_SELL"
 
-    if score > 0:
+    # обычные
+    if crossover == "BUY" and cmf > 0:
         return "BUY"
 
-    if score < 0:
+    if crossover == "SELL" and cmf < 0:
         return "SELL"
 
     return "HOLD"

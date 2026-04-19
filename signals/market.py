@@ -1,7 +1,7 @@
 import requests
 
 
-def get_bybit_ohlcv(symbol: str = "BTCUSDT", limit: int = 100) -> dict:
+def get_bybit_ohlcv(symbol: str = "BTCUSDT", limit: int = 300) -> dict:
     """
     Получает OHLCV данные (свечи) с Bybit.
 
