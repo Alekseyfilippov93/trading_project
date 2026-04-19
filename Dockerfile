@@ -16,7 +16,9 @@ RUN apt-get update && apt-get install -y \
 RUN pip install --upgrade pip setuptools wheel
 
 COPY . /app
+COPY requirements.txt .
 
+RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install numpy pandas
 RUN pip install --upgrade pip
 RUN pip install django djangorestframework psycopg2-binary python-dotenv
