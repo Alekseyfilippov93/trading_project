@@ -1,209 +1,223 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <title>Trading Dashboard</title>
+<meta charset="UTF-8">
+<title>Trading Dashboard</title>
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
-    <style>
-        body {
-            background: #0b0f14;
-            color: #e6edf3;
-        }
+<style>
+body {
+    background: #0b0f14;
+    color: #e6edf3;
+}
 
-        .container {
-            margin-top: 30px;
-        }
+.container {
+    margin-top: 30px;
+}
 
-        h2 {
-            font-weight: 600;
-        }
+h2 {
+    font-weight: 600;
+}
 
-        table {
-            background: #12171f;
-        }
+table {
+    background: #12171f;
+}
 
-        th {
-            color: #8b949e;
-        }
+th {
+    color: #8b949e;
+}
 
-        td {
-            font-weight: 500;
-            color: #ffffff;
-        }
+td {
+    font-weight: 500;
+    color: #ffffff;
+}
 
-        .card {
-            background: #12171f;
-            border: none;
-            box-shadow: 0 0 15px rgba(0,0,0,0.4);
-        }
+.card {
+    background: #12171f;
+    border: none;
+    box-shadow: 0 0 15px rgba(0,0,0,0.4);
+}
 
-        .live-price {
-            font-size: 42px;
-            font-weight: bold;
-            color: #00ffcc;
-        }
+.live-price {
+    font-size: 42px;
+    font-weight: bold;
+    color: #00ffcc;
+}
 
-        .live-small {
-            font-size: 18px;
-            color: #9aa4af;
-        }
+.live-small {
+    font-size: 18px;
+    color: #9aa4af;
+}
 
-        .badge-buy {
-            background: #00c853;
-            color: black;
-            font-weight: bold;
-        }
+.badge-buy {
+    background: #00c853;
+    color: black;
+    font-weight: bold;
+}
 
-        .badge-sell {
-            background: #ff1744;
-            color: white;
-            font-weight: bold;
-        }
+.badge-sell {
+    background: #ff1744;
+    color: white;
+    font-weight: bold;
+}
 
-        .badge-hold {
-            background: #ffd600;
-            color: black;
-            font-weight: bold;
-        }
+.badge-hold {
+    background: #ffd600;
+    color: black;
+    font-weight: bold;
+}
 
-        input {
-            background: #12171f !important;
-            color: white !important;
-            border: 1px solid #2a2f38 !important;
-        }
-
-    </style>
+.market-btn {
+    min-width: 120px;
+}
+</style>
 </head>
 
 <body>
 
 <div class="container">
 
-    <h2 class="text-center mb-4">📊 Trading Signals Dashboard (LIVE)</h2>
+<h2 class="text-center mb-4">📊 Trading Signals Dashboard</h2>
 
-    <!-- 🔥 LIVE БЛОК -->
-    <div class="card p-4 mb-4 text-center">
+<!-- 🔥 SWITCH -->
+<div class="d-flex justify-content-center gap-2 mb-4">
+    <button id="btn-crypto" class="btn btn-success market-btn" onclick="setMarket('crypto')">Crypto</button>
+    <button id="btn-moex" class="btn btn-warning market-btn" onclick="setMarket('moex')">MOEX</button>
+</div>
 
-        <h4 id="live-symbol">BTCUSDT</h4>
+<!-- 🔥 LIVE -->
+<div class="card p-4 mb-4 text-center">
 
-        <div id="live-price" class="live-price">--</div>
+    <h4 id="live-symbol">BTCUSDT</h4>
 
-        <div class="live-small mt-2">
-            RSI: <span id="live-rsi">--</span> |
-            MACD: <span id="live-macd">--</span> |
-            CMF: <span id="live-cmf">--</span>
-        </div>
+    <div id="live-price" class="live-price">--</div>
 
-        <div class="mt-3">
-            <span id="live-signal" class="badge badge-hold">--</span>
-        </div>
-
+    <div class="live-small mt-2">
+        RSI: <span id="live-rsi">--</span> |
+        MACD: <span id="live-macd">--</span> |
+        CMF: <span id="live-cmf">--</span>
     </div>
 
-    <!-- 🔍 ФИЛЬТР -->
-    <div class="mb-3 d-flex gap-2">
-        <input id="symbolFilter" class="form-control" value="BTCUSDT">
-        <button class="btn btn-primary" onclick="loadSignals()">Применить</button>
+    <div class="mt-3">
+        <span id="live-signal" class="badge badge-hold">--</span>
     </div>
 
-    <!-- 📊 ТАБЛИЦА -->
-    <table class="table table-dark table-hover">
-        <thead>
-        <tr>
-            <th>Symbol</th>
-            <th>Price</th>
-            <th>RSI</th>
-            <th>MACD</th>
-            <th>CMF</th>
-            <th>Signal</th>
-            <th>Time</th>
-        </tr>
-        </thead>
+</div>
 
-        <tbody id="signals-body"></tbody>
-    </table>
+<!-- 📊 TABLE -->
+<table class="table table-dark table-hover">
+<thead>
+<tr>
+    <th>Symbol</th>
+    <th>Price</th>
+    <th>RSI</th>
+    <th>MACD</th>
+    <th>CMF</th>
+    <th>Signal</th>
+    <th>Time</th>
+</tr>
+</thead>
+
+<tbody id="signals-body"></tbody>
+</table>
 
 </div>
 
 <script>
 
 /* =========================
-   🎨 ЦВЕТ СИГНАЛА
+   🌍 MARKETS
+========================= */
+let MARKET = "crypto";
+
+const CRYPTO_SYMBOLS = ["BTCUSDT", "ETHUSDT"];
+const MOEX_SYMBOLS = ["SBER", "GAZP", "LKOH", "VTBR"];
+
+function getSymbols() {
+    return MARKET === "crypto" ? CRYPTO_SYMBOLS : MOEX_SYMBOLS;
+}
+
+function setMarket(market) {
+    MARKET = market;
+    updateButtons();
+    loadSignals();
+    loadLive();
+}
+
+/* =========================
+   🎨 BUTTON ACTIVE
+========================= */
+function updateButtons() {
+    document.getElementById("btn-crypto").classList.toggle("active", MARKET === "crypto");
+    document.getElementById("btn-moex").classList.toggle("active", MARKET === "moex");
+}
+
+/* =========================
+   🎨 SIGNAL STYLE
 ========================= */
 function getSignalClass(signal) {
     if (!signal) return "badge-hold";
-
     if (signal.includes("BUY")) return "badge-buy";
     if (signal.includes("SELL")) return "badge-sell";
-
     return "badge-hold";
 }
 
+/* =========================
+   🧠 NORMALIZE
+========================= */
+function normalizeSignal(a) {
+    if (!a) return "HOLD";
+    if (typeof a === "string") return a;
+    return a.signal ?? "HOLD";
+}
 
 /* =========================
-   📊 ТАБЛИЦА
+   📊 TABLE
 ========================= */
 async function loadSignals() {
-
-    let symbol = document.getElementById("symbolFilter").value || "BTCUSDT";
-
-    let url = `http://127.0.0.1:8000/signals/?symbol=${symbol}`;
-
-    const res = await fetch(url);
-    const data = await res.json();
 
     const tbody = document.getElementById("signals-body");
     tbody.innerHTML = "";
 
-    // 🔥 добавляем LIVE строку в таблицу
-const liveRes = await fetch(`http://127.0.0.1:8000/analyze/?symbol=${symbol}`);
-const liveData = await liveRes.json();
+    const symbols = getSymbols();
 
-tbody.innerHTML += `
-    <tr style="background:#1f2a38; border-left: 4px solid #00ffcc;">
-        <td>${liveData.symbol} (LIVE)</td>
-        <td><b>${liveData.price}</b></td>
-        <td>${liveData.rsi ?? "-"}</td>
-        <td>${liveData.macd ?? "-"}</td>
-        <td>${liveData.cmf ?? "-"}</td>
-        <td>
-            <span class="badge ${getSignalClass(liveData.analysis)}">
-                ${liveData.analysis ?? "HOLD"}
-            </span>
-        </td>
-        <td>now</td>
-    </tr>
-`;
+    for (let symbol of symbols) {
 
-    data.forEach(s => {
+        try {
+            const res = await fetch(`http://127.0.0.1:8000/analyze/?symbol=${symbol}`);
+            const data = await res.json();
 
-        tbody.innerHTML += `
-            <tr>
-                <td>${s.symbol}</td>
-                <td><b>${s.price}</b></td>
-                <td>${s.rsi ?? "-"}</td>
-                <td>${s.macd ?? "-"}</td>
-                <td>${s.cmf ?? "-"}</td>
-                <td>
-                    <span class="badge ${getSignalClass(s.analysis)}">
-                        ${s.analysis ?? "HOLD"}
-                    </span>
-                </td>
-                <td>${new Date(s.created_at).toLocaleString()}</td>
-            </tr>
-        `;
-    });
+            const signal = normalizeSignal(data.analysis);
+
+            tbody.innerHTML += `
+                <tr>
+                    <td>${data.symbol}</td>
+                    <td><b>${data.price}</b></td>
+                    <td>${data.rsi ?? "-"}</td>
+                    <td>${data.macd ?? "-"}</td>
+                    <td>${data.cmf ?? "-"}</td>
+                    <td>
+                        <span class="badge ${getSignalClass(signal)}">
+                            ${signal}
+                        </span>
+                    </td>
+                    <td>now</td>
+                </tr>
+            `;
+        } catch (e) {
+            console.error("ERROR:", symbol, e);
+        }
+    }
 }
 
-
 /* =========================
-   🚀 LIVE ДАННЫЕ
+   🚀 LIVE
 ========================= */
 async function loadLive() {
 
-    let symbol = document.getElementById("symbolFilter").value || "BTCUSDT";
+    const symbols = getSymbols();
+    const symbol = symbols[0];
 
     const res = await fetch(`http://127.0.0.1:8000/analyze/?symbol=${symbol}`);
     const data = await res.json();
@@ -215,31 +229,25 @@ async function loadLive() {
     document.getElementById("live-macd").innerText = data.macd ?? "-";
     document.getElementById("live-cmf").innerText = data.cmf ?? "-";
 
-    const signalEl = document.getElementById("live-signal");
-    signalEl.innerText = data.analysis ?? "HOLD";
-    signalEl.className = "badge " + getSignalClass(data.analysis);
+    const signal = normalizeSignal(data.analysis);
+
+    const el = document.getElementById("live-signal");
+    el.innerText = signal;
+    el.className = "badge " + getSignalClass(signal);
 }
 
-
 /* =========================
-   🔁 АВТООБНОВЛЕНИЕ
+   🔁 AUTO UPDATE
 ========================= */
 setInterval(() => {
     loadSignals();
     loadLive();
-}, 4000);
+}, 5000);
 
-
-/* первый запуск */
+/* INIT */
+updateButtons();
 loadSignals();
 loadLive();
-
-
-/* автофильтр при вводе */
-document.getElementById("symbolFilter").addEventListener("input", () => {
-    loadSignals();
-    loadLive();
-});
 
 </script>
 

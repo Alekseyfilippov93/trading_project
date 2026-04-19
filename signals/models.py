@@ -5,6 +5,7 @@ class Signal(models.Model):
     """
     Модель для хранения торговых сигналов и рассчитанных индикаторов.
     """
+
     cmf = models.FloatField(null=True, blank=True)
     BUY = "buy"
     SELL = "sell"
@@ -14,8 +15,12 @@ class Signal(models.Model):
         (SELL, "Sell"),
     ]
 
-    symbol = models.CharField(max_length=20)  # выбираем тикет акции, фьючерса, криптовалюты
-    timeframe = models.CharField(max_length=10)  # 1m, 5m, 1h, за какой период хотим смотреть
+    symbol = models.CharField(
+        max_length=20
+    )  # выбираем тикет акции, фьючерса, криптовалюты
+    timeframe = models.CharField(
+        max_length=10
+    )  # 1m, 5m, 1h, за какой период хотим смотреть
     signal_type = models.CharField(max_length=10)
     price = models.DecimalField(max_digits=10, decimal_places=2)
 

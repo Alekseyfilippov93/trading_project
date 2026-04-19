@@ -6,7 +6,7 @@ from django.shortcuts import render
 
 from .models import Signal
 from .serializers import SignalSerializer
-from .services import calculate_indicators, analyze_signal
+from .services import calculate_indicators, analyze_signal, analyze_moex
 from .market import get_bybit_ohlcv
 from .logger import log_signal
 
@@ -58,12 +58,10 @@ def tradingview_webhook(request):
             "id": signal.id,
             "symbol": symbol,
             "price": price,
-
             "rsi": indicators["rsi"],
             "macd": indicators["macd"],
             "sma_200": indicators["sma_200"],
             "cmf": indicators["cmf"],  # 🔥
-
             "analysis": analysis,
         },
         status=status.HTTP_201_CREATED,
@@ -72,6 +70,7 @@ def tradingview_webhook(request):
 
 # -----------------------------------------------------
 
+
 def dashboard(request):
     """UI dashboard"""
     signals = Signal.objects.order_by("-created_at")[:50]
@@ -79,6 +78,7 @@ def dashboard(request):
 
 
 # -----------------------------------------------------
+
 
 @api_view(["GET"])
 def signals_list(request):
@@ -100,15 +100,29 @@ def signals_list(request):
 
 # -----------------------------------------------------
 
+
 @api_view(["GET"])
 def analyze_market(request):
-    """
-    Ручной анализ рынка без webhook
-    """
+    """Ручной анализ рынка без webhook"""
 
     symbol = request.GET.get("symbol", "BTCUSDT")
 
-    # 🔥 OHLCV вместо старых prices
+    #  MOEX РФ
+    if symbol in ["SBER", "GAZP", "LKOH", "VTBR", "MOEX"]:
+        result = analyze_moex(symbol)
+
+        if not result:
+            return Response(
+                {
+                    "symbol": symbol,
+                    "error": "No MOEX data (market closed or API issue)",
+                },
+                status=200,
+            )
+
+        return Response(result)
+
+    # 🔥 CRYPTO рынок
     market_data = get_bybit_ohlcv(symbol)
 
     if not market_data:
@@ -119,14 +133,14 @@ def analyze_market(request):
     indicators = calculate_indicators(market_data)
     analysis = analyze_signal(indicators, price)
 
-    return Response({
-        "symbol": symbol,
-        "price": price,
-
-        "rsi": indicators["rsi"],
-        "macd": indicators["macd"],
-        "sma_200": indicators["sma_200"],
-        "cmf": indicators["cmf"],
-
-        "analysis": analysis,
-    })
+    return Response(
+        {
+            "symbol": symbol,
+            "price": price,
+            "rsi": indicators["rsi"],
+            "macd": indicators["macd"],
+            "sma_200": indicators["sma_200"],
+            "cmf": indicators["cmf"],
+            "analysis": analysis,
+        }
+    )

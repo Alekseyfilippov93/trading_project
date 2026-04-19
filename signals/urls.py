@@ -5,5 +5,5 @@ urlpatterns = [
     path("webhook/", tradingview_webhook, name="tradingview-webhook"),
     path("dashboard/", dashboard),
     path("signals/", signals_list, name="signals-list"),
-    path("analyze/", analyze_market)
+    path("analyze/", analyze_market),
 ]

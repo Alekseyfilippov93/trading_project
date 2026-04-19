@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('signals', '0003_signal_analysis'),
+        ("signals", "0003_signal_analysis"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='signal',
-            name='cmf',
+            model_name="signal",
+            name="cmf",
             field=models.FloatField(blank=True, null=True),
         ),
     ]
