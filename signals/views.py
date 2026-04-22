@@ -61,7 +61,7 @@ def tradingview_webhook(request):
             "rsi": indicators["rsi"],
             "macd": indicators["macd"],
             "sma_200": indicators["sma_200"],
-            "cmf": indicators["cmf"],  # 🔥
+            "cmf": indicators["cmf"],
             "analysis": analysis,
         },
         status=status.HTTP_201_CREATED,
@@ -112,13 +112,7 @@ def analyze_market(request):
         result = analyze_moex(symbol)
 
         if not result:
-            return Response(
-                {
-                    "symbol": symbol,
-                    "error": "No MOEX data (market closed or API issue)",
-                },
-                status=200,
-            )
+            return Response({"error": "No MOEX data"}, status=400)
 
         return Response(result)
 

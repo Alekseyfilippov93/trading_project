@@ -182,18 +182,23 @@ async function loadSignals() {
 
     const symbols = getSymbols();
 
-    for (let symbol of symbols) {
+    for (const symbol of symbols) {
 
         try {
             const res = await fetch(`http://127.0.0.1:8000/analyze/?symbol=${symbol}`);
+
+            if (!res.ok) continue;
+
             const data = await res.json();
+
+            if (!data || !data.symbol) continue;
 
             const signal = normalizeSignal(data.analysis);
 
-            tbody.innerHTML += `
+            tbody.insertAdjacentHTML("beforeend", `
                 <tr>
                     <td>${data.symbol}</td>
-                    <td><b>${data.price}</b></td>
+                    <td><b>${data.price ?? "-"}</b></td>
                     <td>${data.rsi ?? "-"}</td>
                     <td>${data.macd ?? "-"}</td>
                     <td>${data.cmf ?? "-"}</td>
@@ -204,13 +209,13 @@ async function loadSignals() {
                     </td>
                     <td>now</td>
                 </tr>
-            `;
+            `);
+
         } catch (e) {
-            console.error("ERROR:", symbol, e);
+            console.error("ERROR symbol:", symbol, e);
         }
     }
 }
-
 /* =========================
    🚀 LIVE
 ========================= */
@@ -219,23 +224,32 @@ async function loadLive() {
     const symbols = getSymbols();
     const symbol = symbols[0];
 
-    const res = await fetch(`http://127.0.0.1:8000/analyze/?symbol=${symbol}`);
-    const data = await res.json();
+    try {
+        const res = await fetch(`http://127.0.0.1:8000/analyze/?symbol=${symbol}`);
 
-    document.getElementById("live-symbol").innerText = data.symbol;
-    document.getElementById("live-price").innerText = data.price;
+        if (!res.ok) return;
 
-    document.getElementById("live-rsi").innerText = data.rsi ?? "-";
-    document.getElementById("live-macd").innerText = data.macd ?? "-";
-    document.getElementById("live-cmf").innerText = data.cmf ?? "-";
+        const data = await res.json();
 
-    const signal = normalizeSignal(data.analysis);
+        if (!data) return;
 
-    const el = document.getElementById("live-signal");
-    el.innerText = signal;
-    el.className = "badge " + getSignalClass(signal);
+        document.getElementById("live-symbol").innerText = data.symbol ?? "-";
+        document.getElementById("live-price").innerText = data.price ?? "-";
+
+        document.getElementById("live-rsi").innerText = data.rsi ?? "-";
+        document.getElementById("live-macd").innerText = data.macd ?? "-";
+        document.getElementById("live-cmf").innerText = data.cmf ?? "-";
+
+        const signal = normalizeSignal(data.analysis);
+
+        const el = document.getElementById("live-signal");
+        el.innerText = signal;
+        el.className = "badge " + getSignalClass(signal);
+
+    } catch (e) {
+        console.error("LIVE ERROR:", e);
+    }
 }
-
 /* =========================
    🔁 AUTO UPDATE
 ========================= */

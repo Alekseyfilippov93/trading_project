@@ -125,11 +125,11 @@ def detect_macd_crossover(macd: list[float]) -> str | None:
 
 
 def calculate_cmf(
-    highs: list[float],
-    lows: list[float],
-    closes: list[float],
-    volumes: list[float],
-    period: int = 20,
+        highs: list[float],
+        lows: list[float],
+        closes: list[float],
+        volumes: list[float],
+        period: int = 20,
 ) -> float:
     """
     Chaikin Money Flow (устойчивый вариант)
@@ -207,6 +207,7 @@ def calculate_indicators(data: dict) -> dict:
         "macd_line": macd_line,
         "sma_200": calculate_sma(closes, 200),
         "cmf": calculate_cmf(highs, lows, closes, volumes),
+        "closes": closes,
     }
 
 
@@ -219,6 +220,7 @@ def calculate_score(indicators: dict, price: float) -> int:
     cmf = indicators.get("cmf", 0)
     sma = indicators.get("sma_200")
     macd_line = indicators.get("macd_line")
+    closes = indicators.get("closes")
 
     # RSI (перекупленность)
 
@@ -229,8 +231,6 @@ def calculate_score(indicators: dict, price: float) -> int:
             score += 5
         elif rsi > 70:
             score -= 15
-        elif rsi > 55:
-            score -= 5
 
     # TREND (SMA)
 
@@ -242,17 +242,25 @@ def calculate_score(indicators: dict, price: float) -> int:
 
     # CMF (money flow)
 
-    score += cmf * 20  # усиливаем влияние
+    score += cmf * 10  # усиливаем влияние
 
     # MACD (momentum)
 
-    if macd_line is not None and len(macd_line) > 1:
+    if macd_line and len(macd_line) > 1:
         if macd_line[-1] > macd_line[-2]:
+            score += 5
+        else:
+            score -= 5
+
+    # ограничение
+    if closes and len(closes) > 50:
+        import numpy as np
+
+        if price > np.mean(closes[-50:]):
             score += 10
         else:
             score -= 10
 
-    # ограничение
     return max(0, min(100, int(score)))
 
 
@@ -273,7 +281,6 @@ def analyze_signal(indicators: dict, price: float) -> dict:
         BUY / SELL / STRONG_BUY / STRONG_SELL / HOLD
     """
     score = calculate_score(indicators, price)
-    reasons = explain_signal(indicators, price)
 
     if score >= 75:
         signal = "BUY"
@@ -282,7 +289,13 @@ def analyze_signal(indicators: dict, price: float) -> dict:
     else:
         signal = "HOLD"
 
-    return {"signal": signal, "score": score, "reasons": reasons}
+    return {
+        "signal": signal,
+        "score": score,
+        "rsi": indicators.get("rsi"),
+        "macd": indicators.get("macd"),
+        "cmf": indicators.get("cmf"),
+    }
 
 
 # SIGNAL EXPLAIN
@@ -320,11 +333,11 @@ def explain_signal(indicators: dict, price: float) -> list[str]:
 def analyze_moex(symbol: str):
     data = build_moex_dataset(symbol)
 
-    if not data or not data.get("closes"):
-        return {"symbol": symbol, "error": "NO DATA"}
+    if not data or not data.get("price"):
+        return None
 
     indicators = calculate_indicators(data)
-    signal = analyze_signal(indicators, data["price"])
+    analysis = analyze_signal(indicators, data["price"])
 
     return {
         "symbol": symbol,
@@ -332,5 +345,5 @@ def analyze_moex(symbol: str):
         "rsi": indicators["rsi"],
         "macd": indicators["macd"],
         "cmf": indicators["cmf"],
-        "analysis": signal,
+        "analysis": analysis,
     }

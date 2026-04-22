@@ -24,7 +24,7 @@ def get_bybit_ohlcv(symbol: str = "BTCUSDT", limit: int = 300) -> dict:
     params = {
         "category": "linear",
         "symbol": symbol,
-        "interval": "1",
+        "interval": "60",
         "limit": limit,
     }
 
