@@ -125,11 +125,11 @@ def detect_macd_crossover(macd: list[float]) -> str | None:
 
 
 def calculate_cmf(
-        highs: list[float],
-        lows: list[float],
-        closes: list[float],
-        volumes: list[float],
-        period: int = 20,
+    highs: list[float],
+    lows: list[float],
+    closes: list[float],
+    volumes: list[float],
+    period: int = 20,
 ) -> float:
     """
     Chaikin Money Flow (устойчивый вариант)

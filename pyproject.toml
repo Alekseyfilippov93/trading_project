@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "трейдинг-терминал"
+name = "trading-terminal"
 version = "0.1.0"
-description = ""
+description = "Trading terminal with analytics"
 authors = ["Filippov Aleksey"]
 readme = "README.md"
 
@@ -12,11 +12,17 @@ djangorestframework = "^3.17.1"
 python-dotenv = "^1.2.2"
 psycopg2-binary = "^2.9.11"
 django-filter = "^25.2"
+
 numpy = "^1.26.4"
-celery = "^5.3"
-redis = "^5.0"
-django-celery-beat = "^2.6"
+pandas = "^2.2.0"
+
+celery = "^5.3.6"
+redis = "^5.0.1"
+django-celery-beat = "^2.6.0"
+
 django-cors-headers = "^4.0"
+
+drf-yasg = "^1.21.7"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"
