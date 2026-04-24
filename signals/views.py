@@ -9,6 +9,7 @@ from .serializers import SignalSerializer
 from .services import calculate_indicators, analyze_signal, analyze_moex
 from .market import get_bybit_ohlcv
 from .logger import log_signal
+from django_filters.rest_framework import DjangoFilterBackend
 
 
 @api_view(["POST"])
@@ -87,11 +88,19 @@ def signals_list(request):
     """
 
     symbol = request.GET.get("symbol")
+    timeframe = request.GET.get("timeframe")
+    signal_type = request.GET.get("signal_type")
 
-    signals = Signal.objects.filter(cmf__isnull=False).order_by("-created_at")
+    signals = Signal.objects.all().order_by("-created_at")
 
     if symbol:
         signals = signals.filter(symbol__icontains=symbol)
+
+    if timeframe:
+        signals = signals.filter(timeframe=timeframe)
+
+    if signal_type:
+        signals = signals.filter(signal_type=signal_type)
 
     serializer = SignalSerializer(signals[:50], many=True)
 

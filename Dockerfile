@@ -23,3 +23,4 @@ RUN pip install numpy pandas
 RUN pip install --upgrade pip
 RUN pip install django djangorestframework psycopg2-binary python-dotenv
 RUN pip install requests
+RUN pip install celery redis django-celery-beat

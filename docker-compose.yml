@@ -1,6 +1,7 @@
 version: "3.9"
 
 services:
+
   db:
     image: postgres:15
     container_name: postgres_db
@@ -12,6 +13,12 @@ services:
     ports:
       - "5432:5432"
 
+  redis:
+    image: redis:7
+    container_name: redis
+    ports:
+      - "6379:6379"
+
   web:
     build: .
     container_name: django_app
@@ -22,6 +29,27 @@ services:
       - "8000:8000"
     depends_on:
       - db
+      - redis
+
+  celery:
+    build: .
+    container_name: celery
+    command: celery -A config worker -l info
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+      - redis
+
+  celery-beat:
+    build: .
+    container_name: celery_beat
+    command: celery -A config beat -l info
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+      - redis
 
 volumes:
   postgres_data:
