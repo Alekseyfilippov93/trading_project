@@ -1,6 +1,6 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import status, viewsets
 
 from django.shortcuts import render
 
@@ -10,6 +10,14 @@ from .services import calculate_indicators, analyze_signal, analyze_moex
 from .market import get_bybit_ohlcv
 from .logger import log_signal
 from django_filters.rest_framework import DjangoFilterBackend
+
+
+class SignalViewSet(viewsets.ModelViewSet):
+    queryset = Signal.objects.all().order_by("-created_at")
+    serializer_class = SignalSerializer
+
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ["symbol", "timeframe", "signal_type"]
 
 
 @api_view(["POST"])

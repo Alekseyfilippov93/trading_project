@@ -4,10 +4,19 @@ python-dotenv==1.2.2
 psycopg2-binary==2.9.11
 django-filter==25.2
 numpy==1.26.4
+pandas
+requests
 
-pytest==8.0.0
-pytest-django==4.8.0
-pytest-cov==5.0.0
+# celery стек
 celery
 redis
 django-celery-beat
+drf-yasg
+
+# cors
+django-cors-headers
+
+# тесты
+pytest
+pytest-django
+pytest-cov

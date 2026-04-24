@@ -12,7 +12,9 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
+from celery.schedules import crontab
 from dotenv import load_dotenv
+
 
 load_dotenv()
 
@@ -162,3 +164,14 @@ CELERY_BROKER_URL = "redis://redis:6379/0"
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
+
+CELERY_BEAT_SCHEDULE = {
+    "crypto-update": {
+        "task": "signals.tasks.update_crypto_signals",
+        "schedule": 60.0,  # каждую минуту
+    },
+    "moex-update": {
+        "task": "signals.tasks.update_moex_signals",
+        "schedule": 300.0,  # каждые 5 минут
+    },
+}
