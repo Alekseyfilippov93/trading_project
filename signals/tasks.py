@@ -28,16 +28,20 @@ def update_crypto_signals():
         indicators = calculate_indicators(data)
         analysis = analyze_signal(indicators, price)
 
+        # нормализуем сигнал
+        signal_type = analysis.get("signal") if isinstance(analysis, dict) else analysis
+        signal_type = str(signal_type or "hold").lower()[:10]
+
         Signal.objects.create(
             symbol=symbol,
             timeframe="1h",
-            signal_type=analysis,
+            signal_type=signal_type,
             price=price,
             rsi=indicators.get("rsi"),
             macd=indicators.get("macd"),
             sma_200=indicators.get("sma_200"),
             cmf=indicators.get("cmf"),
-            analysis=str(analysis),
+            analysis=analysis,
             source="celery_crypto",
         )
 
@@ -63,19 +67,21 @@ def update_moex_signals():
         if not result:
             continue
 
+        signal_type = str(result.get("signal") or "hold").lower()[:10]
+
         Signal.objects.create(
             symbol=symbol,
             timeframe="1d",
-            signal_type=result.get("signal", "HOLD"),
+            signal_type=signal_type,
             price=result.get("price", 0),
             rsi=result.get("rsi"),
             macd=result.get("macd"),
             sma_200=result.get("sma_200"),
             cmf=result.get("cmf"),
-            analysis=str(result),
+            analysis=result,
             source="celery_moex",
         )
 
-        log_signal(symbol, result.get("price", 0), str(result.get("signal")))
+        log_signal(symbol, result.get("price", 0), signal_type)
 
-        print(f"[MOEX] {symbol} updated → {result.get('signal')}")
+        print(f"[MOEX] {symbol} updated → {signal_type}")
