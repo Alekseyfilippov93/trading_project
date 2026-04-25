@@ -211,8 +211,13 @@ function setTimeframe(tf) {
 ========================= */
 function getSignalClass(signal) {
     if (!signal) return "badge-hold";
-    if (signal.includes("buy")) return "badge-buy";
-    if (signal.includes("sell")) return "badge-sell";
+
+    // нормализуем
+    const s = String(signal).toUpperCase();
+
+    if (s.includes("BUY")) return "badge-buy";
+    if (s.includes("SELL")) return "badge-sell";
+
     return "badge-hold";
 }
 
