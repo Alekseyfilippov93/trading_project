@@ -1,7 +1,9 @@
 import requests
 
 
-def get_bybit_ohlcv(symbol: str = "BTCUSDT", limit: int = 300) -> dict:
+def get_bybit_ohlcv(
+    symbol: str = "BTCUSDT", timeframe: str = "1h", limit: int = 300
+) -> dict:
     """
     Получает OHLCV данные (свечи) с Bybit.
 
@@ -21,10 +23,19 @@ def get_bybit_ohlcv(symbol: str = "BTCUSDT", limit: int = 300) -> dict:
 
     url = "https://api.bybit.com/v5/market/kline"
 
+    # 🔥 маппинг таймфреймов
+    interval_map = {
+        "15m": "15",
+        "1h": "60",
+        "1d": "D",
+    }
+
+    interval = interval_map.get(timeframe, "60")
+
     params = {
         "category": "linear",
         "symbol": symbol,
-        "interval": "60",
+        "interval": interval,
         "limit": limit,
     }
 
@@ -37,7 +48,6 @@ def get_bybit_ohlcv(symbol: str = "BTCUSDT", limit: int = 300) -> dict:
 
     candles = data["result"]["list"]
 
-    # 🔥 ВАЖНО: правильный порядок
     candles = candles[::-1]
 
     closes = []

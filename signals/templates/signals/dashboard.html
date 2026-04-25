@@ -10,6 +10,7 @@
 body {
     background: #0b0f14;
     color: #e6edf3;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
 }
 
 .container {
@@ -20,8 +21,11 @@ h2 {
     font-weight: 600;
 }
 
+/* TABLE */
 table {
     background: #12171f;
+    border-radius: 10px;
+    overflow: hidden;
 }
 
 th {
@@ -33,10 +37,11 @@ td {
     color: #ffffff;
 }
 
+/* LIVE CARD */
 .card {
     background: #12171f;
-    border: none;
-    box-shadow: 0 0 15px rgba(0,0,0,0.4);
+    border: 1px solid #1f2933;
+    box-shadow: 0 0 18px rgba(0,0,0,0.6);
 }
 
 .live-price {
@@ -50,26 +55,51 @@ td {
     color: #9aa4af;
 }
 
+/* SIGNALS */
 .badge-buy {
     background: #00c853;
     color: black;
     font-weight: bold;
+    padding: 6px 10px;
+    border-radius: 8px;
 }
 
 .badge-sell {
     background: #ff1744;
     color: white;
     font-weight: bold;
+    padding: 6px 10px;
+    border-radius: 8px;
 }
 
 .badge-hold {
     background: #ffd600;
     color: black;
     font-weight: bold;
+    padding: 6px 10px;
+    border-radius: 8px;
 }
 
+/* BUTTONS */
 .market-btn {
     min-width: 120px;
+    border-radius: 10px;
+}
+
+.btn.active {
+    box-shadow: 0 0 12px rgba(0,255,204,0.4);
+}
+
+/* TIMEFRAME ACTIVE */
+.btn-outline-info.active {
+    background: #00ffcc;
+    color: black;
+    border-color: #00ffcc;
+}
+
+/* HOVER */
+.table-hover tbody tr:hover {
+    background: rgba(0,255,204,0.05);
 }
 </style>
 </head>
@@ -80,13 +110,20 @@ td {
 
 <h2 class="text-center mb-4">📊 Trading Signals Dashboard</h2>
 
-<!-- 🔥 SWITCH -->
+<!-- 🔥 MARKET SWITCH -->
 <div class="d-flex justify-content-center gap-2 mb-4">
     <button id="btn-crypto" class="btn btn-success market-btn" onclick="setMarket('crypto')">Crypto</button>
     <button id="btn-moex" class="btn btn-warning market-btn" onclick="setMarket('moex')">MOEX</button>
 </div>
 
-<!-- 🔥 LIVE -->
+<!-- 🔥 TIMEFRAME -->
+<div class="d-flex justify-content-center gap-2 mb-3">
+    <button onclick="setTimeframe('15m')" class="btn btn-outline-info">15m</button>
+    <button onclick="setTimeframe('1h')" class="btn btn-outline-info active">1h</button>
+    <button onclick="setTimeframe('1d')" class="btn btn-outline-info">1d</button>
+</div>
+
+<!-- 🔥 LIVE BLOCK -->
 <div class="card p-4 mb-4 text-center">
 
     <h4 id="live-symbol">BTCUSDT</h4>
@@ -127,9 +164,10 @@ td {
 <script>
 
 /* =========================
-   🌍 MARKETS
+   🌍 STATE
 ========================= */
 let MARKET = "crypto";
+let TIMEFRAME = "1h";
 
 const CRYPTO_SYMBOLS = ["BTCUSDT", "ETHUSDT"];
 const MOEX_SYMBOLS = ["SBER", "GAZP", "LKOH", "VTBR"];
@@ -138,6 +176,9 @@ function getSymbols() {
     return MARKET === "crypto" ? CRYPTO_SYMBOLS : MOEX_SYMBOLS;
 }
 
+/* =========================
+   MARKET SWITCH
+========================= */
 function setMarket(market) {
     MARKET = market;
     updateButtons();
@@ -145,26 +186,38 @@ function setMarket(market) {
     loadLive();
 }
 
-/* =========================
-   🎨 BUTTON ACTIVE
-========================= */
 function updateButtons() {
     document.getElementById("btn-crypto").classList.toggle("active", MARKET === "crypto");
     document.getElementById("btn-moex").classList.toggle("active", MARKET === "moex");
 }
 
 /* =========================
-   🎨 SIGNAL STYLE
+   TIMEFRAME
+========================= */
+function setTimeframe(tf) {
+    TIMEFRAME = tf;
+
+    document.querySelectorAll(".btn-outline-info")
+        .forEach(b => b.classList.remove("active"));
+
+    event.target.classList.add("active");
+
+    loadSignals();
+    loadLive();
+}
+
+/* =========================
+   SIGNAL STYLE
 ========================= */
 function getSignalClass(signal) {
     if (!signal) return "badge-hold";
-    if (signal.includes("BUY")) return "badge-buy";
-    if (signal.includes("SELL")) return "badge-sell";
+    if (signal.includes("buy")) return "badge-buy";
+    if (signal.includes("sell")) return "badge-sell";
     return "badge-hold";
 }
 
 /* =========================
-   🧠 NORMALIZE
+   NORMALIZE SIGNAL
 ========================= */
 function normalizeSignal(a) {
     if (!a) return "HOLD";
@@ -173,7 +226,7 @@ function normalizeSignal(a) {
 }
 
 /* =========================
-   📊 TABLE
+   TABLE
 ========================= */
 async function loadSignals() {
 
@@ -185,13 +238,13 @@ async function loadSignals() {
     for (const symbol of symbols) {
 
         try {
-            const res = await fetch(`http://127.0.0.1:8000/analyze/?symbol=${symbol}`);
+            const res = await fetch(
+                `http://127.0.0.1:8000/analyze/?symbol=${symbol}&timeframe=${TIMEFRAME}`
+            );
 
             if (!res.ok) continue;
 
             const data = await res.json();
-
-            if (!data || !data.symbol) continue;
 
             const signal = normalizeSignal(data.analysis);
 
@@ -212,26 +265,24 @@ async function loadSignals() {
             `);
 
         } catch (e) {
-            console.error("ERROR symbol:", symbol, e);
+            console.error(e);
         }
     }
 }
+
 /* =========================
-   🚀 LIVE
+   LIVE
 ========================= */
 async function loadLive() {
 
-    const symbols = getSymbols();
-    const symbol = symbols[0];
+    const symbol = getSymbols()[0];
 
     try {
-        const res = await fetch(`http://127.0.0.1:8000/analyze/?symbol=${symbol}`);
-
-        if (!res.ok) return;
+        const res = await fetch(
+            `http://127.0.0.1:8000/analyze/?symbol=${symbol}&timeframe=${TIMEFRAME}`
+        );
 
         const data = await res.json();
-
-        if (!data) return;
 
         document.getElementById("live-symbol").innerText = data.symbol ?? "-";
         document.getElementById("live-price").innerText = data.price ?? "-";
@@ -247,11 +298,12 @@ async function loadLive() {
         el.className = "badge " + getSignalClass(signal);
 
     } catch (e) {
-        console.error("LIVE ERROR:", e);
+        console.error(e);
     }
 }
+
 /* =========================
-   🔁 AUTO UPDATE
+   AUTO UPDATE
 ========================= */
 setInterval(() => {
     loadSignals();

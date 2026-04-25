@@ -31,7 +31,8 @@ def tradingview_webhook(request):
     symbol = data.get("symbol")
 
     # 🔥 1. Получаем OHLCV данные с Bybit
-    market_data = get_bybit_ohlcv(symbol)
+    timeframe = request.GET.get("timeframe", "1h")
+    market_data = get_bybit_ohlcv(symbol, timeframe=timeframe)
 
     if not market_data:
         return Response({"error": "No market data"}, status=400)
@@ -97,10 +98,12 @@ def signals_list(request):
 
     symbol = request.GET.get("symbol")
     timeframe = request.GET.get("timeframe")
-    signal_type = request.GET.get("signal_type")
 
+    signal_type = request.GET.get("signal_type")
     signals = Signal.objects.all().order_by("-created_at")
 
+    if timeframe:
+        signals = signals.filter(timeframe=timeframe)
     if symbol:
         signals = signals.filter(symbol__icontains=symbol)
 
@@ -123,6 +126,7 @@ def analyze_market(request):
     """Ручной анализ рынка без webhook"""
 
     symbol = request.GET.get("symbol", "BTCUSDT")
+    timeframe = request.GET.get("timeframe", "1h")
 
     #  MOEX РФ
     if symbol in ["SBER", "GAZP", "LKOH", "VTBR", "MOEX"]:
@@ -134,7 +138,7 @@ def analyze_market(request):
         return Response(result)
 
     # 🔥 CRYPTO рынок
-    market_data = get_bybit_ohlcv(symbol)
+    market_data = get_bybit_ohlcv(symbol, timeframe=timeframe)
 
     if not market_data:
         return Response({"error": "No market data"}, status=400)
