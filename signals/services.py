@@ -1,15 +1,20 @@
 import numpy as np
+from .moex_data import build_moex_dataset
+
+
+# SMA
 
 
 def calculate_sma(prices: list[float], period: int = 200) -> float | None:
     """
-    Рассчитывает функция простоя скользящая средняя (SMA).
-    Аргументы:
-        prices (list[float]): Список цен закрытия.
-        period (int): Период для расчета SMA.
+    Простая скользящая средняя (SMA).
+
+    Args:
+        prices: список цен закрытия
+        period: период расчёта
 
     Returns:
-        float |  Значение SMA или None, если данных недостаточно.
+        SMA или None если данных недостаточно
     """
     if len(prices) < period:
         return None
@@ -17,16 +22,21 @@ def calculate_sma(prices: list[float], period: int = 200) -> float | None:
     return float(np.mean(prices[-period:]))
 
 
+# RSI
+
+
 def calculate_rsi(prices: list[float], period: int = 14) -> float | None:
     """
-    Функция рассчитывает индекс относительной силы (RSI).
+    Индекс относительной силы (RSI).
 
-    Аргументы:
-        prices (list[float]): Список цен закрытия.
-        period (int): Период для расчета RSI.
+    Показывает перекупленность / перепроданность рынка.
+
+    Args:
+        prices: список цен закрытия
+        period: период RSI
 
     Returns:
-        float | Значение RSI или None, если данных недостаточно.
+        RSI (0–100) или None
     """
     if len(prices) < period + 1:
         return None
@@ -42,21 +52,22 @@ def calculate_rsi(prices: list[float], period: int = 14) -> float | None:
         return 100.0
 
     rs = avg_gain / avg_loss
-    rsi = 100 - (100 / (1 + rs))
+    return float(100 - (100 / (1 + rs)))
 
-    return float(rsi)
+
+# EMA
 
 
 def calculate_ema(prices: list[float], period: int) -> list[float]:
     """
-    Экспоненциальную скользящую среднюю (EMA).
+    Экспоненциальная скользящая средняя (EMA).
 
-    Аргументы:
-        prices (list[float]): список цен закрытия.
-        period (int): EMA period.
+    Args:
+        prices: цены
+        period: период
 
     Returns:
-        list[float]: EMA values.
+        список EMA значений
     """
     ema = []
     k = 2 / (period + 1)
@@ -70,15 +81,17 @@ def calculate_ema(prices: list[float], period: int) -> list[float]:
     return ema
 
 
-def calculate_macd(prices: list[float]) -> float | None:
-    """
-    MACD (индикатор сходимости и расхождения скользящих средних).
+# MACD
 
-    Аргументы:
-        prices (list[float]): список цен закрытия.
+
+def calculate_macd(prices: list[float]) -> list[float] | None:
+    """
+    MACD индикатор.
+
+    Показывает импульс тренда.
 
     Returns:
-        float | None: MACD value or None if not enough data.
+        MACD линия или None
     """
     if len(prices) < 26:
         return None
@@ -86,66 +99,251 @@ def calculate_macd(prices: list[float]) -> float | None:
     ema_12 = calculate_ema(prices, 12)
     ema_26 = calculate_ema(prices, 26)
 
-    macd_line = np.array(ema_12) - np.array(ema_26)
-
-    return float(macd_line[-1])
+    return (np.array(ema_12) - np.array(ema_26)).tolist()
 
 
-def calculate_indicators(prices: list[float]) -> dict:
+def detect_macd_crossover(macd: list[float]) -> str | None:
     """
-    Рассчитывает все технические индикаторы
-
-    Аргументы:
-        prices (list[float]): список цен закрытия.
+    Определяет пересечение MACD линии.
 
     Returns:
-        dict: словарь с рассчитанными индикаторами.
+        BUY / SELL / None
     """
-    return {
-        "rsi": calculate_rsi(prices),
-        "macd": calculate_macd(prices),
-        "sma_200": calculate_sma(prices, 200),
-    }
+    if not macd or len(macd) < 2:
+        return None
 
-def analyze_signal(indicators: dict, price: float) -> str:
-    """
-    Анализирует индикаторы и возвращает торговую рекомендацию.
-
-    Стратегия:
-        - Если цена выше SMA 200 → восходящий тренд → ищем BUY
-        - Если цена ниже SMA 200 → нисходящий тренд → ищем SELL
-        - RSI < 30 → перепроданность (BUY)
-        - RSI > 70 → перекупленность (SELL)
-        - MACD > 0 → бычий импульс
-        - MACD < 0 → медвежий импульс
-
-    Args:
-        indicators (dict): Рассчитанные индикаторы (rsi, macd, sma_200)
-        price (float): Текущая цена
-
-    Returns:
-        str: BUY / SELL / HOLD
-    """
-
-    rsi = indicators.get("rsi")
-    macd = indicators.get("macd")
-    sma_200 = indicators.get("sma_200")
-
-    #  защита от None
-    if rsi is None or macd is None or sma_200 is None:
-        return "HOLD"
-
-    if None in (rsi, macd, sma_200):
-        return "HOLD"
-
-    #  определяем тренд
-    trend = "UP" if price > sma_200 else "DOWN"
-
-    #  логика стратегии
-    if trend == "UP" and rsi < 30 and macd > 0:
+    if macd[-2] < 0 and macd[-1] > 0:
         return "BUY"
 
-    if trend == "DOWN" and rsi > 70 and macd < 0:
+    if macd[-2] > 0 and macd[-1] < 0:
         return "SELL"
 
-    return "HOLD"
+    return None
+
+
+# CMF
+
+
+def calculate_cmf(
+    highs: list[float],
+    lows: list[float],
+    closes: list[float],
+    volumes: list[float],
+    period: int = 20,
+) -> float:
+    """
+    Chaikin Money Flow (устойчивый вариант)
+
+    > 0 → BUY давление
+    < 0 → SELL давление
+
+    Всегда возвращает число (не None)
+    """
+
+    # 🔥 защита от мусора
+    if not highs or not lows or not closes or not volumes:
+        return 0.0
+
+    length = min(len(highs), len(lows), len(closes), len(volumes))
+
+    if length < period:
+        period = length  # 🔥 адаптация под малые данные
+
+    mfv = []
+    vol_sum = 0
+
+    for i in range(length - period, length):
+
+        high = highs[i]
+        low = lows[i]
+        close = closes[i]
+        volume = volumes[i]
+
+        # защита от деления на 0
+        if high == low:
+            continue
+
+        # защита от нулевых объёмов
+        if volume <= 0:
+            continue
+
+        mfm = ((close - low) - (high - close)) / (high - low)
+        mfv.append(mfm * volume)
+        vol_sum += volume
+
+    # 🔥 если всё отфильтровалось
+    if vol_sum == 0 or not mfv:
+        return 0.0
+
+    cmf = sum(mfv) / vol_sum
+
+    return float(cmf)
+
+
+# INDICATORS
+
+
+def calculate_indicators(data: dict) -> dict:
+    """
+    Рассчитывает все индикаторы.
+
+    Args:
+        data: OHLCV данные
+
+    Returns:
+        dict с индикаторами
+    """
+
+    closes = data["closes"]
+    highs = data["highs"]
+    lows = data["lows"]
+    volumes = data["volumes"]
+
+    macd_line = calculate_macd(closes)
+
+    return {
+        "rsi": calculate_rsi(closes),
+        "macd": macd_line[-1] if macd_line else None,
+        "macd_line": macd_line,
+        "sma_200": calculate_sma(closes, 200),
+        "cmf": calculate_cmf(highs, lows, closes, volumes),
+        "closes": closes,
+    }
+
+
+def calculate_score(indicators: dict, price: float) -> int:
+    """Преобразует индикаторы в единый score (0–100)"""
+
+    score = 50  # база (нейтральный рынок)
+
+    rsi = indicators.get("rsi")
+    cmf = indicators.get("cmf", 0)
+    sma = indicators.get("sma_200")
+    macd_line = indicators.get("macd_line")
+    closes = indicators.get("closes")
+
+    # RSI (перекупленность)
+
+    if rsi is not None:
+        if rsi < 30:
+            score += 15
+        elif rsi < 45:
+            score += 5
+        elif rsi > 70:
+            score -= 15
+
+    # TREND (SMA)
+
+    if sma is not None:
+        if price > sma:
+            score += 10
+        else:
+            score -= 10
+
+    # CMF (money flow)
+
+    score += cmf * 10  # усиливаем влияние
+
+    # MACD (momentum)
+
+    if macd_line and len(macd_line) > 1:
+        if macd_line[-1] > macd_line[-2]:
+            score += 5
+        else:
+            score -= 5
+
+    # ограничение
+    if closes and len(closes) > 50:
+        import numpy as np
+
+        if price > np.mean(closes[-50:]):
+            score += 10
+        else:
+            score -= 10
+
+    return max(0, min(100, int(score)))
+
+
+# STRATEGY
+
+
+def analyze_signal(indicators: dict, price: float) -> dict:
+    """
+    Торговая стратегия.
+
+    Использует:
+    - RSI
+    - MACD
+    - SMA тренд
+    - CMF (поток денег)
+
+    Returns:
+        BUY / SELL / STRONG_BUY / STRONG_SELL / HOLD
+    """
+    score = calculate_score(indicators, price)
+
+    if score >= 75:
+        signal = "BUY"
+    elif score <= 25:
+        signal = "SELL"
+    else:
+        signal = "HOLD"
+
+    return {
+        "signal": signal,
+        "score": score,
+        "rsi": indicators.get("rsi"),
+        "macd": indicators.get("macd"),
+        "cmf": indicators.get("cmf"),
+    }
+
+
+# SIGNAL EXPLAIN
+
+
+def explain_signal(indicators: dict, price: float) -> list[str]:
+    """Возвращает причины сигнала"""
+
+    reasons = []
+
+    rsi = indicators.get("rsi")
+    cmf = indicators.get("cmf", 0)
+    sma = indicators.get("sma_200")
+
+    if rsi is not None:
+        if rsi < 30:
+            reasons.append("RSI перепродан → бычий тренд")
+        elif rsi > 70:
+            reasons.append("RSI перекуплен → медвежий")
+
+    if sma is not None:
+        if price > sma:
+            reasons.append("Цена выше скользящей средней → восходящий тренд")
+        else:
+            reasons.append("Цена ниже скользящей средней → нисходящий тренд")
+
+    if cmf > 0:
+        reasons.append("Положительный эффект CMF → давление покупателей")
+    else:
+        reasons.append("CMF отрицательный → давление со стороны продавцов")
+
+    return reasons
+
+
+def analyze_moex(symbol: str):
+    data = build_moex_dataset(symbol)
+
+    if not data or not data.get("price"):
+        return None
+
+    indicators = calculate_indicators(data)
+    analysis = analyze_signal(indicators, data["price"])
+
+    return {
+        "symbol": symbol,
+        "price": data["price"],
+        "rsi": indicators["rsi"],
+        "macd": indicators["macd"],
+        "cmf": indicators["cmf"],
+        "analysis": analysis,
+    }

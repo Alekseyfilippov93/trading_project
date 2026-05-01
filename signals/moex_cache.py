@@ -1,0 +1,1 @@
+MOEX_LAST_PRICE = {}

@@ -6,33 +6,33 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('signals', '0001_initial'),
+        ("signals", "0001_initial"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='signal',
-            name='macd',
+            model_name="signal",
+            name="macd",
             field=models.FloatField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name='signal',
-            name='rsi',
+            model_name="signal",
+            name="rsi",
             field=models.FloatField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name='signal',
-            name='sma_200',
+            model_name="signal",
+            name="sma_200",
             field=models.FloatField(blank=True, null=True),
         ),
         migrations.AlterField(
-            model_name='signal',
-            name='price',
+            model_name="signal",
+            name="price",
             field=models.DecimalField(decimal_places=2, max_digits=10),
         ),
         migrations.AlterField(
-            model_name='signal',
-            name='signal_type',
+            model_name="signal",
+            name="signal_type",
             field=models.CharField(max_length=10),
         ),
     ]
