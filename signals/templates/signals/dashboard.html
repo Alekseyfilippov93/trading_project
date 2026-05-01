@@ -118,9 +118,9 @@
 
     <!-- 🔥 TIMEFRAME -->
     <div class="d-flex justify-content-center gap-2 mb-3">
-        <button onclick="setTimeframe('15m')" class="btn btn-outline-info">15m</button>
-        <button onclick="setTimeframe('1h')" class="btn btn-outline-info active">1h</button>
-        <button onclick="setTimeframe('1d')" class="btn btn-outline-info">1d</button>
+        <button onclick="setTimeframe('15m', this)" class="btn btn-outline-info">15m</button>
+        <button onclick="setTimeframe('1h', this)" class="btn btn-outline-info active">1h</button>
+        <button onclick="setTimeframe('1d', this)" class="btn btn-outline-info">1d</button>
     </div>
 
     <!-- 🔥 LIVE BLOCK -->
@@ -163,174 +163,180 @@
 
 <script>
 
-/* =========================
-   🌍 STATE
-========================= */
-let MARKET = "crypto";
-let TIMEFRAME = "1h";
-let CURRENT_SYMBOL = null;
+    /* =========================
+       🌍 STATE
+    ========================= */
+    let MARKET = "crypto";
+    let TIMEFRAME = "1h";
+    let CURRENT_SYMBOL = null;
 
-const CRYPTO_SYMBOLS = ["BTCUSDT", "ETHUSDT", "BNBUSDT"];
-const MOEX_SYMBOLS = ["SBER", "GAZP", "LKOH", "VTBR"];
+    const CRYPTO_SYMBOLS = ["BTCUSDT", "ETHUSDT", "BNBUSDT"];
+    const MOEX_SYMBOLS = ["SBER", "GAZP", "LKOH", "VTBR"];
 
-function getSymbols() {
-    return MARKET === "crypto" ? CRYPTO_SYMBOLS : MOEX_SYMBOLS;
-}
-
-/* =========================
-   SYMBOL SELECT
-========================= */
-function selectSymbol(symbol) {
-    CURRENT_SYMBOL = symbol;
-    loadLive();
-}
-
-/* =========================
-   MARKET SWITCH
-========================= */
-function setMarket(market) {
-    MARKET = market;
-    updateButtons();
-    loadSignals();
-    loadLive();
-}
-
-function updateButtons() {
-    document.getElementById("btn-crypto").classList.toggle("active", MARKET === "crypto");
-    document.getElementById("btn-moex").classList.toggle("active", MARKET === "moex");
-}
-
-/* =========================
-   TIMEFRAME
-========================= */
-function setTimeframe(tf, event) {
-    TIMEFRAME = tf;
-
-    document.querySelectorAll(".btn-outline-info")
-        .forEach(b => b.classList.remove("active"));
-
-    if (event && event.target) {
-        event.target.classList.add("active");
+    function getSymbols() {
+        return MARKET === "crypto" ? CRYPTO_SYMBOLS : MOEX_SYMBOLS;
     }
 
-    loadSignals();
-    loadLive();
-}
+    /* =========================
+       SYMBOL SELECT
+    ========================= */
+    let ACTIVE_SYMBOL = null;
 
-/* =========================
-   SIGNAL STYLE
-========================= */
-function getSignalClass(signal) {
-    if (!signal) return "badge-hold";
+    function selectSymbol(symbol) {
+        CURRENT_SYMBOL = symbol;
+        ACTIVE_SYMBOL = symbol;
+        loadSignals();
+        loadLive();
+    }
 
-    const s = String(signal).toUpperCase();
+    /* =========================
+       MARKET SWITCH
+    ========================= */
+    function setMarket(market) {
+        MARKET = market;
+        updateButtons();
+        loadSignals();
+        loadLive();
+    }
 
-    if (s.includes("BUY")) return "badge-buy";
-    if (s.includes("SELL")) return "badge-sell";
+    function updateButtons() {
+        document.getElementById("btn-crypto").classList.toggle("active", MARKET === "crypto");
+        document.getElementById("btn-moex").classList.toggle("active", MARKET === "moex");
+    }
 
-    return "badge-hold";
-}
+    /* =========================
+       TIMEFRAME
+    ========================= */
+    function setTimeframe(tf, el) {
+        TIMEFRAME = tf;
 
-/* =========================
-   NORMALIZE
-========================= */
-function normalizeSignal(a) {
-    if (!a) return "HOLD";
-    if (typeof a === "string") return a;
-    return a.signal ?? "HOLD";
-}
+        document.querySelectorAll(".btn-outline-info")
+            .forEach(b => b.classList.remove("active"));
 
-/* =========================
-   TABLE
-========================= */
-async function loadSignals() {
+        if (el) {
+            el.classList.add("active");
+        }
 
-    const tbody = document.getElementById("signals-body");
-    tbody.innerHTML = "";
+        loadSignals();
+        loadLive();
+    }
 
-    const symbols = getSymbols();
+    /* =========================
+       SIGNAL STYLE
+    ========================= */
+    function getSignalClass(signal) {
+        if (!signal) return "badge-hold";
 
-    for (const symbol of symbols) {
+        const s = String(signal).toUpperCase();
+
+        if (s.includes("BUY")) return "badge-buy";
+        if (s.includes("SELL")) return "badge-sell";
+
+        return "badge-hold";
+    }
+
+    /* =========================
+       NORMALIZE
+    ========================= */
+    function normalizeSignal(a) {
+        if (!a) return "HOLD";
+        if (typeof a === "string") return a;
+        return a.signal ?? "HOLD";
+    }
+
+    /* =========================
+       TABLE
+    ========================= */
+    async function loadSignals() {
+
+        const tbody = document.getElementById("signals-body");
+        tbody.innerHTML = "";
+
+        const symbols = getSymbols();
+
+        for (const symbol of symbols) {
+
+            try {
+                const res = await fetch(
+                    `http://127.0.0.1:8000/analyze/?symbol=${symbol}&timeframe=${TIMEFRAME}`
+                );
+
+                if (!res.ok) continue;
+
+                const data = await res.json();
+
+                const signal = normalizeSignal(data.analysis);
+
+                tbody.insertAdjacentHTML("beforeend", `
+
+                    <tr class="${data.symbol === ACTIVE_SYMBOL ? 'table-primary' : ''}">
+                        <td onclick="selectSymbol('${data.symbol}')" style="cursor:pointer;">
+                            ${data.symbol}
+                        </td>
+                        <td><b>${data.price ?? "-"}</b></td>
+                        <td>${data.rsi ?? "-"}</td>
+                        <td>${data.macd ?? "-"}</td>
+                        <td>${data.cmf ?? "-"}</td>
+                        <td>
+                            <span class="badge ${getSignalClass(signal)}">
+                                ${signal}
+                            </span>
+                        </td>
+                        <td>now</td>
+                    </tr>
+
+                `);
+
+            } catch (e) {
+                console.error(e);
+            }
+        }
+    }
+
+    /* =========================
+       LIVE
+    ========================= */
+    async function loadLive() {
+
+        const symbol = CURRENT_SYMBOL || getSymbols()[0];
 
         try {
             const res = await fetch(
                 `http://127.0.0.1:8000/analyze/?symbol=${symbol}&timeframe=${TIMEFRAME}`
             );
 
-            if (!res.ok) continue;
-
             const data = await res.json();
+
+            document.getElementById("live-symbol").innerText = data.symbol ?? "-";
+            document.getElementById("live-price").innerText = data.price ?? "-";
+
+            document.getElementById("live-rsi").innerText = data.rsi ?? "-";
+            document.getElementById("live-macd").innerText = data.macd ?? "-";
+            document.getElementById("live-cmf").innerText = data.cmf ?? "-";
 
             const signal = normalizeSignal(data.analysis);
 
-            tbody.insertAdjacentHTML("beforeend", `
-                <tr>
-                    <td onclick="selectSymbol('${data.symbol}')" style="cursor:pointer;">
-                        ${data.symbol}
-                    </td>
-                    <td><b>${data.price ?? "-"}</b></td>
-                    <td>${data.rsi ?? "-"}</td>
-                    <td>${data.macd ?? "-"}</td>
-                    <td>${data.cmf ?? "-"}</td>
-                    <td>
-                        <span class="badge ${getSignalClass(signal)}">
-                            ${signal}
-                        </span>
-                    </td>
-                    <td>now</td>
-                </tr>
-            `);
+            const el = document.getElementById("live-signal");
+            el.innerText = signal;
+            el.className = "badge " + getSignalClass(signal);
 
         } catch (e) {
             console.error(e);
         }
     }
-}
 
-/* =========================
-   LIVE
-========================= */
-async function loadLive() {
+    /* =========================
+       AUTO UPDATE
+    ========================= */
+    setInterval(() => {
+        loadSignals();
+        loadLive();
+    }, 5000);
 
-    const symbol = CURRENT_SYMBOL || getSymbols()[0];
-
-    try {
-        const res = await fetch(
-            `http://127.0.0.1:8000/analyze/?symbol=${symbol}&timeframe=${TIMEFRAME}`
-        );
-
-        const data = await res.json();
-
-        document.getElementById("live-symbol").innerText = data.symbol ?? "-";
-        document.getElementById("live-price").innerText = data.price ?? "-";
-
-        document.getElementById("live-rsi").innerText = data.rsi ?? "-";
-        document.getElementById("live-macd").innerText = data.macd ?? "-";
-        document.getElementById("live-cmf").innerText = data.cmf ?? "-";
-
-        const signal = normalizeSignal(data.analysis);
-
-        const el = document.getElementById("live-signal");
-        el.innerText = signal;
-        el.className = "badge " + getSignalClass(signal);
-
-    } catch (e) {
-        console.error(e);
-    }
-}
-
-/* =========================
-   AUTO UPDATE
-========================= */
-setInterval(() => {
+    /* INIT */
+    updateButtons();
     loadSignals();
     loadLive();
-}, 5000);
-
-/* INIT */
-updateButtons();
-loadSignals();
-loadLive();
 
 </script>
 
