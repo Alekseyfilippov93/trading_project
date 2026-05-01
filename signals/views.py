@@ -31,7 +31,7 @@ def tradingview_webhook(request):
     symbol = data.get("symbol")
 
     # 🔥 1. Получаем OHLCV данные с Bybit
-    timeframe = request.GET.get("timeframe", "1h")
+    timeframe = data.get("timeframe", "1h")  # ✅ FIX
     market_data = get_bybit_ohlcv(symbol, timeframe=timeframe)
 
     if not market_data:
@@ -52,7 +52,7 @@ def tradingview_webhook(request):
     # 🔥 6. Сохранение в БД (ВКЛЮЧАЯ CMF)
     signal = Signal.objects.create(
         symbol=symbol,
-        timeframe=data.get("timeframe"),
+        timeframe=timeframe,  # ✅ FIX
         signal_type=data.get("signal_type"),
         price=price,
         rsi=indicators["rsi"],
@@ -98,17 +98,15 @@ def signals_list(request):
 
     symbol = request.GET.get("symbol")
     timeframe = request.GET.get("timeframe")
-
     signal_type = request.GET.get("signal_type")
+
     signals = Signal.objects.all().order_by("-created_at")
 
     if timeframe:
         signals = signals.filter(timeframe=timeframe)
+
     if symbol:
         signals = signals.filter(symbol__icontains=symbol)
-
-    if timeframe:
-        signals = signals.filter(timeframe=timeframe)
 
     if signal_type:
         signals = signals.filter(signal_type=signal_type)
