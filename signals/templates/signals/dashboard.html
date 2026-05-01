@@ -239,6 +239,12 @@ async function loadSignals() {
     tbody.innerHTML = "";
 
     const symbols = getSymbols();
+    const symbol = CURRENT_SYMBOL || symbols[0];
+
+    function selectSymbol(symbol) {
+    CURRENT_SYMBOL = symbol;
+    loadLive();
+    }
 
     for (const symbol of symbols) {
 
@@ -255,7 +261,9 @@ async function loadSignals() {
 
             tbody.insertAdjacentHTML("beforeend", `
                 <tr>
-                    <td>${data.symbol}</td>
+                    <td onclick="selectSymbol('${data.symbol}')" style="cursor:pointer;">
+                        ${data.symbol}
+                    </td>
                     <td><b>${data.price ?? "-"}</b></td>
                     <td>${data.rsi ?? "-"}</td>
                     <td>${data.macd ?? "-"}</td>
@@ -279,6 +287,8 @@ async function loadSignals() {
    LIVE
 ========================= */
 async function loadLive() {
+
+    let CURRENT_SYMBOL = null;
 
     const symbol = getSymbols()[0];
 
